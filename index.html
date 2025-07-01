@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Tools</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .drop-zone {
+            border: 3px dashed #007bff;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .drop-zone:hover {
+            border-color: #0056b3;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,123,255,0.15);
+        }
+
+        .drop-zone.dragover {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(40,167,69,0.2);
+        }
+
+        .drop-zone i {
+            font-size: 4rem;
+            color: #007bff;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone:hover i {
+            color: #0056b3;
+            transform: scale(1.1);
+        }
+
+        .drop-zone.dragover i {
+            color: #28a745;
+            animation: bounce 0.6s ease-in-out;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 60%, 100% { transform: translateY(0) scale(1.1); }
+            40% { transform: translateY(-10px) scale(1.2); }
+            80% { transform: translateY(-5px) scale(1.15); }
+        }
+
+        .file-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #007bff;
+        }
+
+        .processing {
+            background: linear-gradient(90deg, #007bff, #28a745, #ffc107, #dc3545);
+            background-size: 400% 400%;
+            animation: gradient 2s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 1px solid #28a745;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .spinner-border {
+            width: 2rem;
+            height: 2rem;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 50px;
+            margin-bottom: 50px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <h1 class="text-center mb-4 header-title">
+                    <i class="fas fa-file-csv me-3"></i>CSV File Processor
+                </h1>
+                <p class="text-center text-muted mb-5">
+                    Kéo thả file CSV vào vùng bên dưới để thay thế dấu phẩy trong các trường dữ liệu có dấu ngoặc kép
+                </p>
+
+                <input type="text" id="accountName" class="form-control mb-1" placeholder="Nhập tên Account của PIC">
+                <p class="text-muted mb-4">Có thể dùng URL parameter để lấy tên Account: <strong>?accountName=...</strong>(lưu ý phải là dạng URL encoded nhé)</p>
+
+                <div class="drop-zone" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h4 class="mb-3">Kéo thả file CSV vào đây</h4>
+                    <p class="text-muted mb-3">hoặc nhấp để chọn file</p>
+                    <button class="btn btn-primary btn-lg">
+                        <i class="fas fa-folder-open me-2"></i>Chọn File
+                    </button>
+                </div>
+
+                <input type="file" id="fileInput" accept=".csv" style="display: none;">
+
+                <div id="fileInfo" class="file-info" style="display: none;">
+                    <h5><i class="fas fa-info-circle me-2"></i>Thông tin file:</h5>
+                    <p id="fileName" class="mb-2"></p>
+                    <p id="fileSize" class="mb-2"></p>
+                    <div class="progress mb-3" style="display: none;" id="progressContainer">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar" style="width: 0%" id="progressBar"></div>
+                    </div>
+                    <button class="btn btn-success" id="processBtn">
+                        <i class="fas fa-cogs me-2"></i>Xử lý File
+                    </button>
+                </div>
+
+                <div id="successMessage" class="success-message" style="display: none;">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle text-success me-3" style="font-size: 2rem;"></i>
+                        <div>
+                            <h5 class="mb-1 text-success">Xử lý thành công!</h5>
+                            <p class="mb-0">File đã được xử lý và tải xuống tự động.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const accountName = document.getElementById('accountName');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const processBtn = document.getElementById('processBtn');
+        const successMessage = document.getElementById('successMessage');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+
+        let selectedFile = null;
+
+        // Click to select file
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+            resetInterface();
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            handleFileSelect(e.target.files[0]);
+        });
+
+        // Drag and drop events
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                resetInterface();
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // Load account name from search params
+        const urlParams = new URLSearchParams(window.location.search);
+        const accountNameParam = urlParams.get('accountName');
+        if (accountNameParam) {
+            accountName.value = accountNameParam;
+        }
+
+        // Update search params when account name changes
+        accountName.addEventListener('input', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('accountName', accountName.value);
+            window.history.replaceState(null, '', `?${urlParams.toString()}`);
+        });
+
+        function handleFileSelect(file) {
+            if (!file) return;
+
+            if (file.type !== 'text/csv' && !file.name.toLowerCase().endsWith('.csv')) {
+                alert('Vui lòng chọn file CSV!');
+                return;
+            }
+
+            selectedFile = file;
+
+            // Show file info
+            fileName.innerHTML = `<strong>Tên file:</strong> ${file.name}`;
+            fileSize.innerHTML = `<strong>Kích thước:</strong> ${(file.size / 1024).toFixed(2)} KB`;
+            fileInfo.style.display = 'block';
+            successMessage.style.display = 'none';
+
+            // Update drop zone
+            dropZone.innerHTML = `
+                <i class="fas fa-file-csv text-success"></i>
+                <h4 class="mb-3 text-success">File đã được chọn</h4>
+                <p class="text-muted">${file.name}</p>
+            `;
+        }
+
+        processBtn.addEventListener('click', processFile);
+
+        function processFile() {
+            if (!selectedFile) return;
+
+            processBtn.disabled = true;
+            processBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
+            progressContainer.style.display = 'block';
+
+            // Simulate progress
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 30;
+                if (progress > 90) progress = 90;
+                progressBar.style.width = progress + '%';
+            }, 200);
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    let csvContent = e.target.result;
+
+                    // Replace commas inside quoted fields only
+                    let processedContent = csvContent.replace(/"([^"]*)"/g, function(match, content) {
+                        // Replace commas inside the quoted content with &#44;
+                        return '"' + content.replace(/,/g, '&#44;') + '"';
+                    });
+
+                    // Replace new line with &#10; in quoted fields only
+                    processedContent = processedContent.replace(/"([^"]*)"/g, function(match, content) {
+                        // Replace new lines inside the quoted content with &#10;
+                        return '"' + content.replace(/\r\n/g, '&#10;').replace(/\r/g, '&#10;').replace(/\n/g, '&#10;') + '"';
+                    });
+
+                    // Complete progress
+                    clearInterval(progressInterval);
+                    progressBar.style.width = '100%';
+
+                    setTimeout(() => {
+                        // Create and download the processed file
+                        downloadProcessedFile(processedContent, selectedFile.name);
+
+                        // Show success message
+                        processBtn.disabled = false;
+                        processBtn.innerHTML = '<i class="fas fa-cogs me-2"></i>Xử lý File';
+                        progressContainer.style.display = 'none';
+                        successMessage.style.display = 'block';
+                    }, 500);
+
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    alert('Có lỗi xảy ra khi xử lý file!');
+                    resetProcessButton();
+                }
+            };
+
+            reader.onerror = function() {
+                alert('Có lỗi xảy ra khi đọc file!');
+                resetProcessButton();
+            };
+
+            // Read file as text with UTF-8 encoding
+            reader.readAsText(selectedFile, 'UTF-8');
+        }
+
+        function downloadProcessedFile(content, originalName) {
+            // Create blob with UTF-8 encoding
+            const blob = new Blob([content], {
+                type: 'text/csv;charset=utf-8'
+            });
+
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Generate new filename
+            const nameWithoutExt = originalName.replace('.csv', '');
+            a.download = `${nameWithoutExt}_${accountName && accountName.value ? accountName.value : 'processed'}.csv`;
+
+            // Trigger download
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function resetProcessButton() {
+            processBtn.disabled = false;
+            processBtn.innerHTML = '<i class="fas fa-cogs me-2"></i>Xử lý File';
+            progressContainer.style.display = 'none';
+        }
+
+        function resetInterface() {
+            selectedFile = null;
+            fileInfo.style.display = 'none';
+            successMessage.style.display = 'none';
+            fileInput.value = '';
+
+            dropZone.innerHTML = `
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h4 class="mb-3">Kéo thả file CSV vào đây</h4>
+                <p class="text-muted mb-3">hoặc nhấp để chọn file</p>
+                <button class="btn btn-primary btn-lg">
+                    <i class="fas fa-folder-open me-2"></i>Chọn File
+                </button>
+            `;
+        }
+    </script>
+</body>
+</html>
