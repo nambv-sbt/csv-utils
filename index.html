@@ -100,7 +100,7 @@
 
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            min-height: calc(100vh - 50px);
         }
 
         .container {
@@ -127,13 +127,35 @@
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <h1 class="text-center mb-4 header-title">
-                    <i class="fas fa-file-csv me-3"></i>CSV File Processor
+                    <i class="fas fa-file-csv me-3"></i>CSV Tools
                 </h1>
-                <p class="text-center text-muted mb-5">
-                    Kéo thả file CSV vào vùng bên dưới để thay thế dấu phẩy trong các trường dữ liệu có dấu ngoặc kép
+                <p class="text-center text-muted">
+                    Kéo thả file CSV vào vùng bên dưới để thay thế các ký tự đặc biệt trong file CSV
+                    (nằm trong dấu ngoặc kép)
                 </p>
+                <div class="d-flex justify-content-center align-items-center col-sm-0 col-md-6">
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th class="text-center">Ký tự</th>
+                                <th class="text-center">Ký tự thay thế</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fileList">
+                            <tr>
+                                <td class="text-center">,</td>
+                                <td class="text-center">&amp;#44;</td>
+                            </tr>
+                            <tr>
+                                <td class="text-center">NewLine</td>
+                                <td class="text-center">&amp;#10;</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                <input type="text" id="accountName" class="form-control mb-1" placeholder="Nhập tên Account của PIC">
+                <label for="accountName">Account Name:</label>
+                <input type="text" id="accountName" class="form-control mb-1" placeholder="Nhập tên Account, ví dụ: 'nambv'">
                 <p class="text-muted mb-4">Có thể dùng URL parameter để lấy tên Account: <strong>?accountName=...</strong>(lưu ý phải là dạng URL encoded nhé)</p>
 
                 <div class="drop-zone" id="dropZone">
